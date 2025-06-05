@@ -7,6 +7,7 @@ import { Gif } from '../interfaces/gif.interface';
 import { GifMapper } from "../mapper/gif.mapper";
 
 const GIF_KEYS = "gifs";
+const LIMIT_PER_REQUEST = 20;
 const loadFromLocalStorage = () =>{
   const gifsFromLocalStorage = localStorage.getItem(GIF_KEYS) ?? '{}';
   const gifs = JSON.parse(gifsFromLocalStorage);
@@ -27,6 +28,7 @@ export class GifsService {
     }
     return groups;
    })
+   private trendingPage = signal(0);
    loaderGifs = signal(false);
    searchHistory = signal<Record<string, Gif[]>>(loadFromLocalStorage());
    searchHistoryKeys = computed(()=> Object.keys(this.searchHistory()))
@@ -42,18 +44,19 @@ export class GifsService {
   })
 
   loadTrendingGifs(){
+    if (this.loaderGifs()) return; // Prevent multiple requests
+    this.loaderGifs.set(true);
     this.http.get<GiphyResponse>(`${environment.GIPHY_API_URL}/gifs/trending`,{
       params: {
         api_key: environment.GIPHY_API_KEY,
-        limit: '20',
-        offset: '0',
-        ratting: 'g',
-        bundle:"messaging_non_clips"
+        limit: LIMIT_PER_REQUEST,
+        offset: this.trendingPage() * LIMIT_PER_REQUEST
       }
     }).subscribe((resp)=>{
       const gifs = GifMapper.mapGiphyItemsToGifs(resp.data);
+      this.trengdingGifs.update((prevGifs)=> [...prevGifs, ...gifs]);
+      this.trendingPage.update((page) => page + 1);
       this.loaderGifs.set(false);
-      this.trengdingGifs.set(gifs);
     })
   }
 
