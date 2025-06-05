@@ -20,6 +20,13 @@ const loadFromLocalStorage = () =>{
 export class GifsService {
   private http = inject(HttpClient);
    trengdingGifs = signal(<Gif[]>[]);
+   trendingGifGroup = computed<Gif[][]>(() => {
+    const groups = []
+    for (let i = 0; i < this.trengdingGifs().length; i += 3) {
+      groups.push(this.trengdingGifs().slice(i, i + 3))
+    }
+    return groups;
+   })
    loaderGifs = signal(false);
    searchHistory = signal<Record<string, Gif[]>>(loadFromLocalStorage());
    searchHistoryKeys = computed(()=> Object.keys(this.searchHistory()))
